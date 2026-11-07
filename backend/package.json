@@ -1,0 +1,21 @@
+{
+  "name": "tn-ved-api",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "index": "node src/index-cli.js",
+    "parse": "node src/index-cli.js --parse-only",
+    "check": "node src/selfcheck.js"
+  },
+  "dependencies": {
+    "@huggingface/transformers": "^3.7.5",
+    "@qdrant/js-client-rest": "^1.15.1",
+    "cheerio": "^1.1.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^4.21.2",
+    "iconv-lite": "^0.6.3",
+    "playwright-core": "^1.58.0"
+  }
+}

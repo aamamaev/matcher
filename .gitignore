@@ -1,0 +1,9 @@
+node_modules
+.cache
+.tools
+.qdrant
+backend/data/cache
+backend/.env
+frontend/dist
+*.log
+.DS_Store

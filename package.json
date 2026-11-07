@@ -1,0 +1,12 @@
+{
+  "name": "tn-ved-matcher",
+  "private": true,
+  "scripts": {
+    "setup": "npm install --prefix backend && npm install --prefix frontend",
+    "qdrant": "node scripts/qdrant.mjs",
+    "index": "npm --prefix backend run index",
+    "start": "npm --prefix backend run start",
+    "dev": "node scripts/dev.mjs",
+    "check": "npm --prefix backend run check"
+  }
+}
