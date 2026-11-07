@@ -28,15 +28,35 @@ app.get("/api/health", async (_request, response) => {
 });
 
 app.post("/api/classify", async (request, response) => {
-  try {
-    if (!request.body?.url && !request.body?.card && !request.body?.title) {
-      response.status(400).json({ error: "Передайте ссылку или карточку товара" });
-      return;
-    }
-    response.json(await classifyInput(request.body));
-  } catch (error) {
-    response.status(error.status || 400).json({ error: error.message || "Не удалось классифицировать товар" });
+  if (!request.body?.url && !request.body?.card && !request.body?.title) {
+    response.status(400).json({ error: "Передайте ссылку или карточку товара" });
+    return;
   }
+  const stream = request.get("accept") === "application/x-ndjson";
+  if (!stream) {
+    try {
+      response.json(await classifyInput(request.body));
+    } catch (error) {
+      response.status(error.status || 400).json({ error: error.message || "Не удалось классифицировать товар" });
+    }
+    return;
+  }
+
+  response.status(200);
+  response.setHeader("Content-Type", "application/x-ndjson; charset=utf-8");
+  response.setHeader("Cache-Control", "no-cache");
+  response.setHeader("X-Accel-Buffering", "no");
+  response.flushHeaders();
+  const send = (event) => {
+    if (!response.writableEnded) response.write(`${JSON.stringify(event)}\n`);
+  };
+  try {
+    const result = await classifyInput(request.body, (progress) => send({ type: "progress", ...progress }));
+    send({ type: "result", result });
+  } catch (error) {
+    send({ type: "error", error: error.message || "Не удалось классифицировать товар" });
+  }
+  response.end();
 });
 
 app.listen(config.port, "127.0.0.1", () => {

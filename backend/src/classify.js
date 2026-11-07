@@ -3,7 +3,7 @@ import { metaPath } from "./config.js";
 import { embedQuery } from "./embeddings.js";
 import { cardFromBody, fetchProduct } from "./fetch-product.js";
 import { collectionInfo, searchPoints } from "./qdrant.js";
-import { rerank } from "./rerank.js";
+import { llmEnabled, rerank } from "./rerank.js";
 import { productToText } from "./text.js";
 
 function aggregate(hits) {
@@ -53,7 +53,7 @@ async function readMeta() {
   }
 }
 
-export async function classifyInput(body) {
+export async function classifyInput(body, onProgress = () => {}) {
   const info = await collectionInfo();
   if (!info.ok || !info.points) {
     const error = new Error("Индекс Qdrant пуст. В каталоге tn_ved выполните npm run index");
@@ -61,15 +61,33 @@ export async function classifyInput(body) {
     throw error;
   }
 
+  const report = (stage, extra = {}) => onProgress({ stage, ...extra });
   const started = Date.now();
+  report(body.url ? "open" : "embed", {
+    detail: body.url ? "Chrome открывает страницу магазина" : "Считаю вектор текста карточки",
+  });
   const product = body.url ? await fetchProduct(body.url) : cardFromBody(body);
   const fetchedAt = Date.now();
+  if (body.url) {
+    report("read", {
+      detail: product.title,
+      product: {
+        marketplace: product.marketplace,
+        title: product.title,
+        category: product.category,
+        attributes: (product.attributes || []).slice(0, 6),
+      },
+    });
+  }
+  report("embed", { detail: "Считаю вектор текста карточки" });
   const vector = await embedQuery(productToText(product));
   const embeddedAt = Date.now();
+  report("search", { detail: "Сравниваю карточку с номенклатурой" });
   const hits = await searchPoints(vector, 40);
   const searchedAt = Date.now();
   const retrieval = aggregate(hits).slice(0, 12);
   let reranked;
+  if (llmEnabled()) report("rerank", { detail: "Модель выбирает три кода из найденных" });
   try {
     reranked = await rerank(product, retrieval);
   } catch (error) {
